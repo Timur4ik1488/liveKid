@@ -1,11 +1,30 @@
 services:
   livekit:
     image: livekit/livekit-server:latest
+    command: --config /etc/livekit.yaml --node-ip ${EXTERNAL_IP}
     ports:
-      - "7880:7880"
-      - "7881:7881"
-      - "7882:7882/udp"
+      - "7880:7880/tcp"  # HTTP API
+      - "7881:7881/tcp"  # WebSocket
+      - "3478:3478/udp"  # TURN/STUN
+      - "50000-60000:50000-60000/udp"  # RTC/ICE диапазон
+    volumes:
+      - ./livekit.yaml:/etc/livekit.yaml  # Конфиг
+      - ./logs:/var/log/livekit  # Логи на хосте
     env_file:
       - .env
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:7880"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"  # Ротация логов
+        max-file: "5"
+        compress: "true"
+
+volumes:
+  logs: {}
     
